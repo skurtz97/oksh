@@ -1254,12 +1254,25 @@ void
 initcurses(void)
 {
 	struct tbl *vp = global("TERM");
+	char name[64], *dash;
 	int ret;
 
-	if (vp) {
-		if (setupterm(str_val(vp),
-		    shl_out->fd, &ret) == ERR)
-			del_curterm(cur_term);
+	if (vp == NULL)
+		return;
+	if (strlcpy(name, str_val(vp), sizeof(name)) >= sizeof(name))
+		return;
+	/*
+	 * If the terminal is unknown, retry with its base name
+	 * (xterm-256color -> xterm): some terminfo databases, such as
+	 * z/OS's, lack the newer variants.
+	 */
+	for (;;) {
+		if (setupterm(name, shl_out->fd, &ret) != ERR)
+			return;
+		del_curterm(cur_term);
+		if ((dash = strrchr(name, '-')) == NULL)
+			return;
+		*dash = '\0';
 	}
 }
 #endif /* SMALL */
