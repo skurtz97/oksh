@@ -36,6 +36,7 @@
 #ifdef __MVS__
 #include <grp.h>	/* setgroups() */
 #include <strings.h>	/* strcasecmp(), strncasecmp() */
+#define OKSH_SPAWN 1	/* run simple commands with spawn(), see jobs.c */
 #endif /* __MVS__ */
 
 #if defined(__HAIKU__)

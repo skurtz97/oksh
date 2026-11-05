@@ -31,6 +31,10 @@
 #include "sh.h"
 #include "tty.h"
 
+#ifdef OKSH_SPAWN
+#include <spawn.h>
+#endif /* OKSH_SPAWN */
+
 /* Order important! */
 #define PRUNNING	0
 #define PEXITED		1
@@ -377,6 +381,61 @@ j_change(void)
 	}
 }
 
+#ifdef OKSH_SPAWN
+/*
+ * Run an expanded external command (a TEXEC node) with spawn() instead
+ * of fork() and execve().  fork() copies the whole address space on
+ * z/OS; spawn() does not, and with _BPX_SHAREAS=YES in the command's
+ * environment the child runs in this address space.
+ *
+ * This does what the forked child would do before execve(): restore the
+ * signal mask, reset shell-managed and job-control signals to their
+ * defaults (signals with traps are reset by the exec itself; ignored
+ * ones stay ignored), and set the process group and terminal.  The
+ * command's redirections are already in place in this shell and the
+ * descriptors it keeps for itself are close-on-exec, so fd_count 0
+ * passes descriptors exactly as execve() would.
+ *
+ * Returns the child's pid, or -1 to fall back to fork().
+ */
+static pid_t
+spawn_texec(struct op *t, const sigset_t *omask)
+{
+	struct inheritance inh;
+	Trap *p;
+	int i;
+
+	if (*str_val(global("OKSH_NOSPAWN")))
+		return -1;
+
+	memset(&inh, 0, sizeof(inh));
+	inh.flags = SPAWN_SETSIGMASK | SPAWN_SETSIGDEF;
+	inh.sigmask = *omask;
+	sigemptyset(&inh.sigdefault);
+	for (i = NSIG + 1, p = sigtraps; --i >= 0; p++) {
+		if (p->signal <= 0 || p->signal >= NSIG)
+			continue;
+		/* spawn() can reset a signal but not make it ignored */
+		if (p->flags & TF_EXEC_IGN)
+			return -1;
+		if (p->flags & TF_EXEC_DFL)
+			sigaddset(&inh.sigdefault, p->signal);
+	}
+	if (Flag(FMONITOR)) {
+		for (i = NELEM(tt_sigs); --i >= 0; )
+			sigaddset(&inh.sigdefault, tt_sigs[i]);
+		inh.flags |= SPAWN_SETGROUP;
+		inh.pgroup = SPAWN_NEWPGROUP;
+		if (ttypgrp_ok) {
+			inh.flags |= SPAWN_SETTCPGRP;
+			inh.ctlttyfd = tty_fd;
+		}
+	}
+	return spawn(t->str, 0, NULL, &inh, (const char **)t->args,
+	    (const char **)makenv());
+}
+#endif /* OKSH_SPAWN */
+
 /* execute tree in child subprocess */
 int
 exchild(struct op *t, int flags, volatile int *xerrok,
@@ -439,19 +498,30 @@ exchild(struct op *t, int flags, volatile int *xerrok,
 
 	snptreef(p->command, sizeof(p->command), "%T", t);
 
-	/* create child process */
-	forksleep = 1;
-	while ((i = fork()) == -1 && errno == EAGAIN && forksleep < 32) {
-		if (intrsig)	 /* allow user to ^C out... */
-			break;
-		sleep(forksleep);
-		forksleep <<= 1;
-	}
-	if (i == -1) {
-		kill_job(j, SIGKILL);
-		remove_job(j, "fork failed");
-		sigprocmask(SIG_SETMASK, &omask, NULL);
-		errorf("cannot fork - try again");
+	i = -1;
+#ifdef OKSH_SPAWN
+	/* a single foreground command: spawn instead of fork */
+	if (t->type == TEXEC && close_fd < 0 &&
+	    !(flags & (XPIPEI | XPIPEO | XBGND | XCOPROC | XXCOM)))
+		i = spawn_texec(t, &omask);
+	if (i == -1)
+#endif /* OKSH_SPAWN */
+	{
+		/* create child process */
+		forksleep = 1;
+		while ((i = fork()) == -1 && errno == EAGAIN &&
+		    forksleep < 32) {
+			if (intrsig)	 /* allow user to ^C out... */
+				break;
+			sleep(forksleep);
+			forksleep <<= 1;
+		}
+		if (i == -1) {
+			kill_job(j, SIGKILL);
+			remove_job(j, "fork failed");
+			sigprocmask(SIG_SETMASK, &omask, NULL);
+			errorf("cannot fork - try again");
+		}
 	}
 	ischild = i == 0;
 	if (ischild)
