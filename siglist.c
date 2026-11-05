@@ -34,6 +34,10 @@
 
 #include <signal.h>
 
+#ifdef __MVS__
+#include "portable.h"	/* z/OS <signal.h> has no NSIG */
+#endif /* __MVS__ */
+
 const char *const sys_siglist[NSIG] = {
 	"Signal 0",
 	"Hangup",			/* SIGHUP */
