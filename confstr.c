@@ -32,7 +32,9 @@
 
 #ifndef HAVE_CONFSTR
 
-#include <paths.h>
+#ifndef __MVS__
+#include <paths.h>	/* z/OS has none; portable.h supplies _PATH_* */
+#endif /* !__MVS__ */
 #include <string.h>
 
 #include "portable.h"

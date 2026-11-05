@@ -42,7 +42,7 @@ OBJS =	alloc.o asprintf.o c_ksh.o c_sh.o c_test.o c_ulimit.o edit.o \\
 	emacs.o eval.o exec.o expr.o history.o io.o jobs.o lex.o mail.o \\
 	main.o misc.o path.o shf.o syn.o table.o trap.o tree.o tty.o var.o \\
 	version.o vi.o confstr.o reallocarray.o siglist.o signame.o \\
-	strlcat.o strlcpy.o strtonum.o unvis.o vis.o issetugid.o
+	strlcat.o strlcpy.o strtonum.o unvis.o vis.o issetugid.o flock.o
 
 all: \${PROG}
 
@@ -164,7 +164,13 @@ EOF
     fi
   fi
 
-  for compiler in cc clang pcc tcc lacc cparser ccomp xlc gcc ; do
+  compilers="cc clang pcc tcc lacc cparser ccomp xlc gcc"
+  # z/OS: cc is the legacy EBCDIC front end; prefer Open XL C/C++
+  if [ "x`uname -s`" = "xOS/390" ] ; then
+    compilers="ibm-clang64 ibm-clang $compilers"
+  fi
+
+  for compiler in $compilers ; do
 cat << EOF > conftest.c
 int main(void){return 0;}
 EOF
@@ -188,6 +194,38 @@ EOF
     fi
   done
   return 1
+}
+
+flockcheck() {
+  cat << EOF > conftest.c
+#include <sys/file.h>
+int main(void){flock(0, LOCK_EX);return 0;}
+EOF
+  $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  if [ $? -eq 0 ] ; then
+    rm -f conftest conftest.o conftest.c
+    return 0
+  else
+    rm -f conftest conftest.o conftest.c
+    return 1
+  fi
+}
+
+killpgcheck() {
+  cat << EOF > conftest.c
+#include <signal.h>
+int main(void){killpg(0, 0);return 0;}
+EOF
+  $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  if [ $? -eq 0 ] ; then
+    rm -f conftest conftest.o conftest.c
+    return 0
+  else
+    rm -f conftest conftest.o conftest.c
+    return 1
+  fi
 }
 
 clockgettimecheck() {
@@ -1095,6 +1133,15 @@ case "x$os" in
     cflags="$cflags -D_ALL_SOURCE"
     ldflags="-lbsd"
     ;;
+  "xOS/390")
+    # z/OS headers hide POSIX/XPG definitions behind feature macros.
+    # Build as an ASCII program with enhanced ASCII support so the
+    # shell honours file tags and auto-conversion.
+    cflags="$cflags -D_XOPEN_SOURCE=600 -D_ALL_SOURCE"
+    cflags="$cflags -D_OPEN_SYS_FILE_EXT=1 -D_AE_BIMODAL=1"
+    cflags="$cflags -D_ENHANCED_ASCII_EXT=0xFFFFFFFF"
+    cflags="$cflags -fzos-le-char-mode=ascii"
+    ;;
   "xDarwin")
     if [ $xlc -eq 1 ] ; then
       echo "warning: Detected xlc on Darwin."
@@ -1205,6 +1252,24 @@ printf "checking for confstr... "
 confstrcheck
 if [ $? -eq 0 ] ; then
   echo "#define HAVE_CONFSTR" >> pconfig.h
+  echo "yes"
+else
+  echo "no"
+fi
+
+printf "checking for flock... "
+flockcheck
+if [ $? -eq 0 ] ; then
+  echo "#define HAVE_FLOCK" >> pconfig.h
+  echo "yes"
+else
+  echo "no"
+fi
+
+printf "checking for killpg... "
+killpgcheck
+if [ $? -eq 0 ] ; then
+  echo "#define HAVE_KILLPG" >> pconfig.h
   echo "yes"
 else
   echo "no"

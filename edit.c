@@ -22,6 +22,11 @@
 #include "edit.h"
 #include "tty.h"
 
+#ifndef _POSIX_VDISABLE
+/* z/OS has no compile-time value; fpathconf(_PC_VDISABLE) reports 0 */
+#define _POSIX_VDISABLE	'\0'
+#endif /* !_POSIX_VDISABLE */
+
 X_chars edchars;
 
 static void x_sigwinch(int);
