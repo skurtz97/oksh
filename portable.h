@@ -35,6 +35,7 @@
 
 #ifdef __MVS__
 #include <grp.h>	/* setgroups() */
+#include <strings.h>	/* strcasecmp(), strncasecmp() */
 #endif /* __MVS__ */
 
 #if defined(__HAIKU__)
@@ -254,6 +255,10 @@ void	 *reallocarray(void *, size_t, size_t);
 #ifndef HAVE_STRAVIS
 int	  stravis(char **, const char *, int);
 #endif /* !HAVE_STRAVIS */
+
+#ifndef HAVE_STRSIGNAL
+char	*strsignal(int);
+#endif /* !HAVE_STRSIGNAL */
 
 #ifndef HAVE_STRLCAT
 size_t	strlcat(char *, const char *, size_t);

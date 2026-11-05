@@ -42,7 +42,8 @@ OBJS =	alloc.o asprintf.o c_ksh.o c_sh.o c_test.o c_ulimit.o edit.o \\
 	emacs.o eval.o exec.o expr.o history.o io.o jobs.o lex.o mail.o \\
 	main.o misc.o path.o shf.o syn.o table.o trap.o tree.o tty.o var.o \\
 	version.o vi.o confstr.o reallocarray.o siglist.o signame.o \\
-	strlcat.o strlcpy.o strtonum.o unvis.o vis.o issetugid.o flock.o
+	strlcat.o strlcpy.o strtonum.o unvis.o vis.o issetugid.o flock.o \\
+	strsignal.o
 
 all: \${PROG}
 
@@ -200,6 +201,22 @@ flockcheck() {
   cat << EOF > conftest.c
 #include <sys/file.h>
 int main(void){flock(0, LOCK_EX);return 0;}
+EOF
+  $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  if [ $? -eq 0 ] ; then
+    rm -f conftest conftest.o conftest.c
+    return 0
+  else
+    rm -f conftest conftest.o conftest.c
+    return 1
+  fi
+}
+
+strsignalcheck() {
+  cat << EOF > conftest.c
+#include <string.h>
+int main(void){strsignal(1);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
   $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
@@ -1270,6 +1287,15 @@ printf "checking for killpg... "
 killpgcheck
 if [ $? -eq 0 ] ; then
   echo "#define HAVE_KILLPG" >> pconfig.h
+  echo "yes"
+else
+  echo "no"
+fi
+
+printf "checking for strsignal... "
+strsignalcheck
+if [ $? -eq 0 ] ; then
+  echo "#define HAVE_STRSIGNAL" >> pconfig.h
   echo "yes"
 else
   echo "no"
