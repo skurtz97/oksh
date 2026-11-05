@@ -15,6 +15,14 @@
 #include "sh.h"
 #include "charclass.h"
 
+#ifdef __MVS__
+/*
+ * z/OS <collate.h> declares a public cclass(); rename ours.  A
+ * function-like macro leaves struct cclass from charclass.h alone.
+ */
+#define cclass(p, sub)	oksh_cclass(p, sub)
+#endif /* __MVS__ */
+
 short ctypes [UCHAR_MAX+1];	/* type bits for unsigned char */
 static int dropped_privileges;
 

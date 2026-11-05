@@ -33,6 +33,10 @@
 #include <sys/file.h>
 #endif /* _AIX || __sun */
 
+#ifdef __MVS__
+#include <grp.h>	/* setgroups() */
+#endif /* __MVS__ */
+
 #if defined(__HAIKU__)
 #include <stdint.h>
 #endif
