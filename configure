@@ -38,7 +38,7 @@ BINDIR =	$bindir
 MANDIR =	$mandir
 
 PROG =	$instprog
-OBJS =	alloc.o asprintf.o c_ksh.o c_sh.o c_test.o c_ulimit.o edit.o \\
+OBJS =	alloc.o asprintf.o c_ksh.o c_sh.o c_test.o c_ulimit.o edit.o zos_spawn.o \\
 	emacs.o eval.o exec.o expr.o history.o io.o jobs.o lex.o mail.o \\
 	main.o misc.o path.o shf.o syn.o table.o trap.o tree.o tty.o var.o \\
 	version.o vi.o confstr.o reallocarray.o siglist.o signame.o \\

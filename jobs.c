@@ -30,6 +30,7 @@
 
 #include "sh.h"
 #include "tty.h"
+#include "zos_spawn.h"
 
 /* Order important! */
 #define PRUNNING	0
@@ -440,6 +441,21 @@ exchild(struct op *t, int flags, volatile int *xerrok,
 	snptreef(p->command, sizeof(p->command), "%T", t);
 
 	/* create child process */
+#ifdef HAVE_ZOS_SPAWN
+	{
+		pid_t	spid = -1, spgrp = 0;
+
+		if (zos_spawn_child(flags, t, tty_fd, &spgrp, &spid) == 0) {
+			p->pid = spid;
+			if (Flag(FMONITOR) && !(flags & XXCOM) && j->pgrp == 0)
+				j->pgrp = spgrp;
+			if (ttypgrp_ok && j->pgrp != 0 && !(flags & XBGND))
+				tcsetpgrp(tty_fd, j->pgrp);
+			sigprocmask(SIG_SETMASK, &omask, NULL);
+			return 0;
+		}
+	}
+#endif
 	forksleep = 1;
 	while ((i = fork()) == -1 && errno == EAGAIN && forksleep < 32) {
 		if (intrsig)	 /* allow user to ^C out... */

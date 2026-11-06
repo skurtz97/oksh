@@ -17,6 +17,8 @@
 
 #include "sh.h"
 
+#include "zos_spawn.h"
+
 extern char **environ;
 
 /*
@@ -154,6 +156,10 @@ main(int argc, char *argv[])
 	pid_t ppid;
 
 	kshname = argv[0];
+
+#ifdef HAVE_ZOS_SPAWN
+	zos_spawn_init();
+#endif
 
 #ifdef HAVE_PLEDGE
 	if (issetugid()) { /* could later drop privileges */
