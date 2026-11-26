@@ -6,6 +6,11 @@
 
 /* $From: lex.h,v 1.4 1994/05/31 13:34:34 michael Exp $ */
 
+#ifndef OKSH_LEX_H
+#define OKSH_LEX_H
+
+#include "types.h"
+
 #define	IDENT	64
 
 typedef struct source Source;
@@ -117,3 +122,5 @@ void	yyerror(const char *, ...)
 Source * pushs(int, Area *);
 void	set_prompt(int);
 void	pprompt(const char *, int);
+
+#endif /* !OKSH_LEX_H */

@@ -6,6 +6,9 @@
 
 /* $From: sh.h,v 1.2 1994/05/19 18:32:40 michael Exp michael $ */
 
+#ifndef OKSH_SH_H
+#define OKSH_SH_H
+
 #include "config.h"	/* system and option configuration info */
 
 /* Start of common headers */
@@ -19,8 +22,9 @@
 
 /* end of common headers */
 
+#include "types.h"
+
 #define	NELEM(a) (sizeof(a) / sizeof((a)[0]))
-#define	BIT(i)	(1<<(i))	/* define bit in flag */
 
 #define	NUFILE	32		/* Number of user-accessible files */
 #define	FDBASE	10		/* First file usable by Shell */
@@ -45,13 +49,6 @@ extern	int	subst_exstat;	/* exit status of last $(..)/`..` */
 extern	const char *safe_prompt; /* safe prompt if PS1 substitution fails */
 extern	char	username[];	/* username for \u prompt expansion */
 extern	int	disable_subst;	/* disable substitution during evaluation */
-
-/*
- * Area-based allocation built on malloc/free
- */
-typedef struct Area {
-	struct link *freelist;	/* free list */
-} Area;
 
 extern	Area	aperm;		/* permanent object space */
 #define	APERM	&aperm
@@ -288,28 +285,6 @@ extern	short ctypes [];
 #define	letnum(c)	(ctype(c, C_ALPHA) || isdigit((unsigned char)(c)))
 
 extern int ifs0;	/* for "$*" */
-
-/* Argument parsing for built-in commands and getopts command */
-
-/* Values for Getopt.flags */
-#define GF_ERROR	BIT(0)	/* call errorf() if there is an error */
-#define GF_PLUSOPT	BIT(1)	/* allow +c as an option */
-#define GF_NONAME	BIT(2)	/* don't print argv[0] in errors */
-
-/* Values for Getopt.info */
-#define GI_MINUS	BIT(0)	/* an option started with -... */
-#define GI_PLUS		BIT(1)	/* an option started with +... */
-#define GI_MINUSMINUS	BIT(2)	/* arguments were ended with -- */
-
-typedef struct {
-	int		optind;
-	int		uoptind;/* what user sees in $OPTIND */
-	char		*optarg;
-	int		flags;	/* see GF_* */
-	int		info;	/* see GI_* */
-	unsigned int	p;	/* 0 or index into argv[optind - 1] */
-	char		buf[2];	/* for bad option OPTARG value */
-} Getopt;
 
 extern Getopt builtin_opt;	/* for shell builtin commands */
 extern Getopt user_opt;		/* parsing state for getopts builtin command */
@@ -604,3 +579,5 @@ char *	arrayname(const char *);
 void    set_array(const char *, int, char **);
 void	initcurses(void);
 /* vi.c: see edit.h */
+
+#endif /* !OKSH_SH_H */

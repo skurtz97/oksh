@@ -15,6 +15,9 @@
 #include <unistd.h>
 
 #include "sh.h"
+#ifdef __MVS__
+#include "ccsid.h"
+#endif
 
 /* flags to shf_emptybuf() */
 #define EB_READSW	0x01	/* about to switch to reading */
@@ -348,6 +351,10 @@ shf_emptybuf(struct shf *shf, int flags)
 			unsigned char *buf = shf->buf;
 			int n;
 
+#ifdef __MVS__
+			if (zos_untagged(shf->fd))
+				zos_atoe((char *) buf, ntowrite);
+#endif
 			while (ntowrite > 0) {
 				n = write(shf->fd, buf, ntowrite);
 				if (n == -1) {
@@ -414,6 +421,10 @@ shf_fillbuf(struct shf *shf)
 			continue;
 		break;
 	}
+#ifdef __MVS__
+	if (shf->rnleft > 0 && zos_untagged(shf->fd))
+		zos_etoa((char *) shf->buf, shf->rnleft);
+#endif
 	if (shf->rnleft <= 0) {
 		if (shf->rnleft < 0) {
 			shf->flags |= SHF_ERROR;

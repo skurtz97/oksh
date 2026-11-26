@@ -7,6 +7,12 @@
 /*
  * POSIX character class support for fnmatch() and glob().
  */
+#ifndef OKSH_CHARCLASS_H
+#define OKSH_CHARCLASS_H
+
+#include <ctype.h>
+#include <stddef.h>
+
 static const struct cclass {
 	const char *name;
 	int (*isctype)(int);
@@ -27,3 +33,5 @@ static const struct cclass {
 };
 
 #define NCCLASSES	(sizeof(cclasses) / sizeof(cclasses[0]) - 1)
+
+#endif /* !OKSH_CHARCLASS_H */

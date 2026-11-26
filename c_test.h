@@ -3,6 +3,11 @@
 /* Various types of operations.  Keeping things grouped nicely
  * (unary,binary) makes switch() statements more efficient.
  */
+#ifndef OKSH_C_TEST_H
+#define OKSH_C_TEST_H
+
+#include "sh.h"
+
 enum Test_op {
 	TO_NONOP = 0,	/* non-operator */
 	/* unary operators */
@@ -51,3 +56,5 @@ struct test_env {
 Test_op	test_isop(Test_env *, Test_meta, const char *);
 int     test_eval(Test_env *, Test_op, const char *, const char *, int);
 int	test_parse(Test_env *);
+
+#endif /* !OKSH_C_TEST_H */

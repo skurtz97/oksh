@@ -300,11 +300,10 @@ restfd(int fd, int ofd)
 
 #ifdef __MVS__
 /*
- * Tag a new pipe as IBM-1047 text.  An untagged pipe is read raw, so
- * EBCDIC writers (/bin tools) and ASCII readers (this shell, zopen
- * tools) disagree about its contents and $(uname) comes back garbled.
- * Tagged, EBCDIC programs use it natively and ASCII programs with
- * auto-conversion (_BPXK_AUTOCVT, FILETAG(AUTOCVT)) convert both ways.
+ * Tag a new pipe as IBM-1047 text.  The shell converts untagged
+ * descriptors itself, but an ASCII child (a zopen tool) needs the tag
+ * and auto-conversion to see text where an EBCDIC child (any /bin
+ * tool) reads the bytes natively.
  */
 static void
 zos_tag_pipe(int fd)

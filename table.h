@@ -6,6 +6,11 @@
  * generic hashed associative table for commands and variables.
  */
 
+#ifndef OKSH_TABLE_H
+#define OKSH_TABLE_H
+
+#include "types.h"
+
 struct table {
 	Area   *areap;		/* area to allocate entries */
 	int	size, nfree;	/* hash size (always 2^^n), free entries */
@@ -191,3 +196,5 @@ void		ktdelete(struct tbl *);
 void		ktwalk(struct tstate *, struct table *);
 struct tbl *	ktnext(struct tstate *);
 struct tbl **	ktsort(struct table *);
+
+#endif /* !OKSH_TABLE_H */
