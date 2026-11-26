@@ -1,0 +1,80 @@
+# zopen community build environment for oksh.
+#
+#   zopen build            # STABLE line, tarball from the fork
+#   ZOPEN_BUILD_LINE=DEV zopen build
+#
+# Requires nothing beyond the core tools (make, clang, zoslib), so the
+# dependency lists stay empty on purpose.
+
+export ZOPEN_CATEGORIES="shell"
+
+if [ -z "${ZOPEN_BUILD_LINE}" ]; then
+  export ZOPEN_BUILD_LINE="STABLE"
+fi
+
+if [ -z "${ZOPEN_STABLE_URL}" ]; then
+  export ZOPEN_STABLE_URL="https://github.com/skurtz97/oksh/archive/refs/heads/main.tar.gz"
+fi
+if [ -z "${ZOPEN_STABLE_DEPS}" ]; then
+  export ZOPEN_STABLE_DEPS=" "
+fi
+
+if [ -z "${ZOPEN_DEV_URL}" ]; then
+  export ZOPEN_DEV_URL="https://github.com/skurtz97/oksh.git"
+fi
+if [ -z "${ZOPEN_DEV_BRANCH}" ]; then
+  export ZOPEN_DEV_BRANCH="main"
+fi
+if [ -z "${ZOPEN_DEV_DEPS}" ]; then
+  export ZOPEN_DEV_DEPS=" "
+fi
+
+# oksh ships its own configure, which detects the z/OS feature macros and
+# ASCII character mode itself; zopen's CFLAGS would override them, so ask
+# it to pass none of its own.
+export ZOPEN_CONFIGURE_MINIMAL="yes"
+export ZOPEN_MAKE_MINIMAL="yes"
+export ZOPEN_CHECK_MINIMAL="yes"
+
+# The system make has no -j and the build is small; run it serially.  A
+# single space keeps zopen from substituting its own -j default.
+export ZOPEN_MAKE_OPTS=" "
+# Same for install, but name the target by hand: zopen's default is
+# "-j${ZOPEN_NUM_JOBS} install" and only the -j is the problem.
+export ZOPEN_INSTALL_OPTS="install"
+
+zopen_append_to_env()
+{
+  echo 'export KSH_VERSION="${KSH_VERSION:-PD_KSH_v5_2_14}"'
+}
+
+# Version from version.c, without the OpenBSD revision decoration.
+zopen_get_version()
+{
+  echo "5.2.14"
+}
+
+# tests/run.sh prints "tests: <total>, failed: <failed>"; anything short of
+# that line, or a run that executed no check at all, counts as a failure.
+# The suite reports 71 checks on z/OS and 61 elsewhere (tests/zos.t skips),
+# so 60 is the floor below which a test file must have gone missing.
+zopen_check_results()
+{
+  check_log="$1/$2_check.log"
+  summary=$(grep -E '^tests: [0-9]+, failed: [0-9]+$' "$check_log" 2>/dev/null | tail -1)
+
+  total=$(echo "$summary" | sed 's/^tests: \([0-9]*\), failed: \([0-9]*\)$/\1/')
+  failures=$(echo "$summary" | sed 's/^tests: \([0-9]*\), failed: \([0-9]*\)$/\2/')
+
+  if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+    total=0
+    failures=1
+  fi
+
+  cat <<EOF
+actualFailures:$failures
+totalTests:$total
+expectedFailures:0
+expectedTotalTests:60
+EOF
+}

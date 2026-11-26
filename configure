@@ -59,18 +59,28 @@ fi
 cat << EOF >> Makefile
 
 install:
-	install -d \${DESTDIR}\${BINDIR}
-	install -d \${DESTDIR}\${MANDIR}/man1
-	install -c $stripopt -m 755 \${PROG} \${DESTDIR}\${BINDIR}
-	install -c -m 644 \${PROG}.1 \${DESTDIR}\${MANDIR}/man1
+	mkdir -p \${DESTDIR}\${BINDIR}
+	mkdir -p \${DESTDIR}\${MANDIR}/man1
+	cp \${PROG} \${DESTDIR}\${BINDIR}/\${PROG}
+	chmod 755 \${DESTDIR}\${BINDIR}/\${PROG}
+	cp \${PROG}.1 \${DESTDIR}\${MANDIR}/man1/\${PROG}.1
+	chmod 644 \${DESTDIR}\${MANDIR}/man1/\${PROG}.1
 EOF
+
+# install(1) is not in POSIX and z/OS does not ship one; mkdir, cp and
+# chmod are there everywhere.
+if [ -n "$stripopt" ] ; then
+cat << EOF >> Makefile
+	strip \${DESTDIR}\${BINDIR}/\${PROG}
+EOF
+fi
 
 if [ $instsh -ne 0 ] ; then
 cat << EOF >> Makefile
-	install -d \${DESTDIR}\${BINDIR}
-	install -d \${DESTDIR}\${MANDIR}/man1
-	install -c $stripopt -m 755 \${PROG} \${DESTDIR}\${BINDIR}/sh
-	install -c -m 644 sh.1 \${DESTDIR}\${MANDIR}/man1
+	cp \${PROG} \${DESTDIR}\${BINDIR}/sh
+	chmod 755 \${DESTDIR}\${BINDIR}/sh
+	cp sh.1 \${DESTDIR}\${MANDIR}/man1/sh.1
+	chmod 644 \${DESTDIR}\${MANDIR}/man1/sh.1
 EOF
 fi
 
@@ -100,11 +110,14 @@ fi
 
 cat << EOF >> Makefile
 
-test:
-	echo "No tests"
+check: \${PROG}
+	sh tests/run.sh ./\${PROG}
+
+test: check
 
 clean:
 	rm -f \${PROG} \${OBJS}
+	rm -f tests/.*.log
 
 distclean: clean
 	rm -f Makefile pconfig.h *.core
@@ -117,7 +130,7 @@ asprintfcheck() {
 int main(void){asprintf(NULL,NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -148,7 +161,7 @@ cat << EOF > conftest.c
 int main(void){return 0;}
 EOF
     $CC $cflags -o conftest.o -c conftest.c
-    $CC $ldflags -o conftest conftest.o
+    $CC $ldflags -o conftest conftest.o $probelibs
     if [ $? -eq 0 ] ; then
       ./conftest
       if [ $? -eq 0 ] ; then
@@ -177,7 +190,7 @@ int main(void){return 0;}
 EOF
 
     $compiler $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-    $compiler $ldflags -o conftest conftest.o > /dev/null 2>&1
+    $compiler $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
 
     if [ $? -eq 0 ] ; then
       ./conftest
@@ -203,7 +216,7 @@ flockcheck() {
 int main(void){flock(0, LOCK_EX);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -219,7 +232,7 @@ strsignalcheck() {
 int main(void){strsignal(1);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -235,7 +248,7 @@ killpgcheck() {
 int main(void){killpg(0, 0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -252,7 +265,7 @@ clockgettimecheck() {
 int main(void){clock_gettime(0,NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -273,7 +286,7 @@ return 1;
 }
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -290,7 +303,7 @@ clockgettimertcheck() {
 int main(void){clock_gettime(0,NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o -lrt > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs -lrt > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -306,7 +319,7 @@ confstrcheck() {
 int main(void){confstr(0,NULL,0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -323,7 +336,7 @@ cursescheck() {
 int main(void){setupterm(NULL, 0, NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o -lcurses > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs -lcurses > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -339,7 +352,7 @@ deadcheck() {
 __dead void usage(void){exit(1);}int main(void){usage();return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -355,7 +368,7 @@ dead2check() {
 __dead2 void usage(void){exit(1);}int main(void){usage();return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -385,7 +398,7 @@ getauxvalcheck() {
 int main(void){getauxval(AT_SECURE);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -416,7 +429,7 @@ issetugidcheck() {
 int main(void){issetugid();return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -448,7 +461,7 @@ ncursescheck() {
 int main(void){setupterm(NULL, 0, NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c -lncurses > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o -lncurses > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs -lncurses > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -465,7 +478,7 @@ ncursesncursescheck() {
 int main(void){setupterm(NULL, 0, NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c -lncurses > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o -lncurses > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs -lncurses > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -496,7 +509,7 @@ noreturncheck() {
 __attribute__((__noreturn__)) void usage(void){exit(1);}int main(void){usage();return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -512,7 +525,7 @@ pledgecheck() {
 int main(void){pledge(NULL,NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -535,7 +548,7 @@ reallocarraycheck() {
 int main(void){reallocarray(NULL, 0, 0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -552,7 +565,7 @@ setresgidcheck() {
 int main(void){setresgid(0, 0, 0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -569,7 +582,7 @@ setresuidcheck() {
 int main(void){setresuid(0, 0, 0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -587,7 +600,7 @@ siglistcheck() {
 int main(void){printf("%s",sys_siglist[0]);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -605,7 +618,7 @@ signamecheck() {
 int main(void){printf("%s",sys_signame[0]);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -621,7 +634,7 @@ sig_tcheck() {
 int main(void){sig_t s;return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -637,7 +650,7 @@ sranddeterministiccheck() {
 int main(void){srand_deterministic(0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -653,7 +666,7 @@ st_mtimcheck() {
 int main(void){struct stat s;s.st_mtim.tv_sec=0;return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -669,7 +682,7 @@ st_mtimespeccheck() {
 int main(void){struct stat s;s.st_mtimespec.tv_sec=0;return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -686,7 +699,7 @@ stravischeck() {
 int main(void){stravis(NULL, NULL, 0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -702,7 +715,7 @@ strlcatcheck() {
 int main(void){strlcat(NULL,NULL,0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -718,7 +731,7 @@ strlcpycheck() {
 int main(void){strlcpy(NULL,NULL,0);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -734,7 +747,7 @@ strtonumcheck() {
 int main(void){strtonum(NULL, 0, 0, NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -751,7 +764,7 @@ strunvischeck() {
 int main(void){strunvis(NULL, NULL);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -767,7 +780,7 @@ timeraddcheck() {
 int main(void){struct timeval a, b, res;timeradd(&a, &b, &res);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -783,7 +796,7 @@ timerclearcheck() {
 int main(void){struct timeval a;timerclear(&a);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -799,7 +812,7 @@ timersubcheck() {
 int main(void){struct timeval a, b, res;timersub(&a, &b, &res);return 0;}
 EOF
   $cc $cflags -o conftest.o -c conftest.c > /dev/null 2>&1
-  $cc $ldflags -o conftest conftest.o > /dev/null 2>&1
+  $cc $ldflags -o conftest conftest.o $probelibs > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     rm -f conftest conftest.o conftest.c
     return 0
@@ -1114,6 +1127,11 @@ else
   cflags="$cflags -w"
   echo "yes"
 fi
+
+# Libraries the caller supplies through LIBS take part in every real link,
+# so the probes below link with them as well (zopen passes -lzoslib that
+# way, and the compat files must not be built when that library has them).
+probelibs="$LIBS"
 
 printf "checking for OS... "
 os=`uname -s`

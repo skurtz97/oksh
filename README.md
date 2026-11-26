@@ -35,6 +35,7 @@ Supported systems
 * SerenityOS
 * MSYS2
 * QNX (thanks to @wordgitet)
+* z/OS UNIX System Services (IBM Open XL C/C++, `ibm-clang64`)
 
 Running on a system not listed here? Add it and send a pull request!
 
@@ -43,7 +44,6 @@ Believed working
 We believe that `oksh` will work on the following platforms, but testing is needed.
 Help is greatly appreciated and encouraged!
 * Irix
-* z/OS UNIX System Services (IBM Open XL C/C++, `ibm-clang64`)
 
 Supported compilers
 -------------------
@@ -123,6 +123,31 @@ the target machine and linked there.
 The `--no-thanks` flag can also be used to compile a native `oksh` with
 all the compatibility functions compiled in, rather than relying on the
 system's version of those functions.
+
+z/OS
+----
+On z/OS UNIX the shell is built as an ASCII program (`-fzos-le-char-mode=ascii`),
+which is what `configure` selects once `uname -s` reports `OS/390`. Data that
+other programs on the system expect to be EBCDIC is converted by the shell
+itself, so untagged files, pipes and the terminal all agree with `/bin/sh` and
+the rest of the utilities: untagged and tagged EBCDIC data is translated on
+read and written back as EBCDIC, while file descriptors tagged for a
+conversion-capable codeset are left to the kernel and `_BPXK_AUTOCVT`.
+
+Build it natively:
+```
+$ ./configure
+$ make check
+$ make install
+```
+
+Or build it as a [zopen community](https://zopen.community/) package, which
+takes care of the toolchain, the install tree and the test gate:
+```
+$ zopen build
+```
+The port metadata lives in `buildenv`; `make check` runs the suite in `tests/`
+under the shell that was just built.
 
 Submitting patches
 ------------------
