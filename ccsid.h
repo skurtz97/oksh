@@ -13,7 +13,7 @@
 #include <sys/types.h>
 
 #ifdef __MVS__
-int	zos_untagged(int);
+int	zos_ebcdic(int);
 void	zos_etoa(char *, int);
 void	zos_atoe(char *, int);
 ssize_t	zos_write(int, const char *, size_t);

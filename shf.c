@@ -352,7 +352,7 @@ shf_emptybuf(struct shf *shf, int flags)
 			int n;
 
 #ifdef __MVS__
-			if (zos_untagged(shf->fd))
+			if (zos_ebcdic(shf->fd))
 				zos_atoe((char *) buf, ntowrite);
 #endif
 			while (ntowrite > 0) {
@@ -422,7 +422,7 @@ shf_fillbuf(struct shf *shf)
 		break;
 	}
 #ifdef __MVS__
-	if (shf->rnleft > 0 && zos_untagged(shf->fd))
+	if (shf->rnleft > 0 && zos_ebcdic(shf->fd))
 		zos_etoa((char *) shf->buf, shf->rnleft);
 #endif
 	if (shf->rnleft <= 0) {
