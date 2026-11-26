@@ -29,6 +29,17 @@ if [ -z "${ZOPEN_DEV_DEPS}" ]; then
   export ZOPEN_DEV_DEPS=" "
 fi
 
+# oksh ships its own configure, which detects the z/OS feature macros and
+# ASCII character mode itself; zopen's CFLAGS would override them, so ask
+# it to pass none of its own.
+export ZOPEN_CONFIGURE_MINIMAL="yes"
+export ZOPEN_MAKE_MINIMAL="yes"
+export ZOPEN_CHECK_MINIMAL="yes"
+
+# The system make has no -j and the build is small; run it serially.  A
+# single space keeps zopen from substituting its own -j default.
+export ZOPEN_MAKE_OPTS=" "
+
 zopen_append_to_env()
 {
   echo 'export KSH_VERSION="${KSH_VERSION:-PD_KSH_v5_2_14}"'
