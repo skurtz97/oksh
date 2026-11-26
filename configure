@@ -59,18 +59,28 @@ fi
 cat << EOF >> Makefile
 
 install:
-	install -d \${DESTDIR}\${BINDIR}
-	install -d \${DESTDIR}\${MANDIR}/man1
-	install -c $stripopt -m 755 \${PROG} \${DESTDIR}\${BINDIR}
-	install -c -m 644 \${PROG}.1 \${DESTDIR}\${MANDIR}/man1
+	mkdir -p \${DESTDIR}\${BINDIR}
+	mkdir -p \${DESTDIR}\${MANDIR}/man1
+	cp \${PROG} \${DESTDIR}\${BINDIR}/\${PROG}
+	chmod 755 \${DESTDIR}\${BINDIR}/\${PROG}
+	cp \${PROG}.1 \${DESTDIR}\${MANDIR}/man1/\${PROG}.1
+	chmod 644 \${DESTDIR}\${MANDIR}/man1/\${PROG}.1
 EOF
+
+# install(1) is not in POSIX and z/OS does not ship one; mkdir, cp and
+# chmod are there everywhere.
+if [ -n "$stripopt" ] ; then
+cat << EOF >> Makefile
+	strip \${DESTDIR}\${BINDIR}/\${PROG}
+EOF
+fi
 
 if [ $instsh -ne 0 ] ; then
 cat << EOF >> Makefile
-	install -d \${DESTDIR}\${BINDIR}
-	install -d \${DESTDIR}\${MANDIR}/man1
-	install -c $stripopt -m 755 \${PROG} \${DESTDIR}\${BINDIR}/sh
-	install -c -m 644 sh.1 \${DESTDIR}\${MANDIR}/man1
+	cp \${PROG} \${DESTDIR}\${BINDIR}/sh
+	chmod 755 \${DESTDIR}\${BINDIR}/sh
+	cp sh.1 \${DESTDIR}\${MANDIR}/man1/sh.1
+	chmod 644 \${DESTDIR}\${MANDIR}/man1/sh.1
 EOF
 fi
 
