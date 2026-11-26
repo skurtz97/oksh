@@ -100,11 +100,14 @@ fi
 
 cat << EOF >> Makefile
 
-test:
-	echo "No tests"
+check: \${PROG}
+	sh tests/run.sh ./\${PROG}
+
+test: check
 
 clean:
 	rm -f \${PROG} \${OBJS}
+	rm -f tests/.*.log
 
 distclean: clean
 	rm -f Makefile pconfig.h *.core
