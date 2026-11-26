@@ -22,8 +22,18 @@
 #include <string.h>
 #if !defined(SMALL) && !defined(NO_CURSES)
 #ifdef HAVE_CURSES
+# ifdef __MVS__
+/* z/OS <term.h> does typedef int bool, clashing with <stdbool.h> */
+typedef int oksh_curses_bool;
+#  undef bool
+#  define bool oksh_curses_bool
+# endif
 # include <term.h>
 # include <curses.h>
+# ifdef __MVS__
+#  undef bool
+#  define bool _Bool
+# endif
 #elif defined(HAVE_NCURSES)
 # include <term.h>
 # include <ncurses.h>

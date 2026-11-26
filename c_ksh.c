@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "sh.h"
+#include "ccsid.h"
 
 int
 c_cd(char **wp)
@@ -373,7 +374,7 @@ c_print(char **wp)
 			opipe = block_pipe();
 		}
 		for (s = Xstring(xs, xp); len > 0; ) {
-			n = write(fd, s, len);
+			n = zos_write(fd, s, len);
 			if (n == -1) {
 				if (flags & PO_COPROC)
 					restore_pipe(opipe);

@@ -43,6 +43,7 @@ Believed working
 We believe that `oksh` will work on the following platforms, but testing is needed.
 Help is greatly appreciated and encouraged!
 * Irix
+* z/OS UNIX System Services (IBM Open XL C/C++, `ibm-clang64`)
 
 Supported compilers
 -------------------

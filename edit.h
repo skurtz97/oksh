@@ -14,6 +14,12 @@
  *
  */
 
+#ifndef OKSH_EDIT_H
+#define OKSH_EDIT_H
+
+#include <stddef.h>
+#include <stdbool.h>
+
 #define	BEL		0x07
 
 #undef CTRL
@@ -59,3 +65,5 @@ void	x_init_emacs(void);
 void	x_emacs_keys(X_chars *);
 /* vi.c */
 int	x_vi(char *, size_t);
+
+#endif /* !OKSH_EDIT_H */

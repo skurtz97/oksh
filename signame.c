@@ -139,6 +139,34 @@ static const struct {
 #ifdef SIGSTKFLT
 	{ SIGSTKFLT, "STKFLT" },
 #endif
+#ifdef SIGPOLL
+	{ SIGPOLL, "POLL" },	/* after SIGIO: where they alias, IO wins */
+#endif
+	/* z/OS */
+#ifdef SIGABND
+	{ SIGABND, "ABND" },
+#endif
+#ifdef SIGIOERR
+	{ SIGIOERR, "IOERR" },
+#endif
+#ifdef SIGDANGER
+	{ SIGDANGER, "DANGER" },
+#endif
+#ifdef SIGTHSTOP
+	{ SIGTHSTOP, "THSTOP" },
+#endif
+#ifdef SIGTHCONT
+	{ SIGTHCONT, "THCONT" },
+#endif
+#ifdef SIGTRACE
+	{ SIGTRACE, "TRACE" },
+#endif
+#ifdef SIGDCE
+	{ SIGDCE, "DCE" },
+#endif
+#ifdef SIGDUMP
+	{ SIGDUMP, "DUMP" },
+#endif
 };
 
 const char *

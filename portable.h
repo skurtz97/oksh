@@ -18,7 +18,9 @@
 #include <stdlib.h>
 #endif /* __linux__ || __CYGWIN__ || __midipix__ */
 
-#include <sys/param.h>
+#ifndef __MVS__
+#include <sys/param.h>	/* z/OS has no <sys/param.h> */
+#endif /* !__MVS__ */
 #include <sys/time.h>
 #include <stdint.h>
 
@@ -30,6 +32,12 @@
 #if defined(_AIX) || defined(__sun)
 #include <sys/file.h>
 #endif /* _AIX || __sun */
+
+#ifdef __MVS__
+#include <grp.h>	/* setgroups() */
+#include <strings.h>	/* strcasecmp(), strncasecmp() */
+#define OKSH_SPAWN 1	/* run simple commands with spawn(), see jobs.c */
+#endif /* __MVS__ */
 
 #if defined(__HAIKU__)
 #include <stdint.h>
@@ -70,20 +78,33 @@
 #define _PW_NAME_LEN	MAXLOGNAME
 #elif defined(__sun)
 #define _PW_NAME_LEN	LOGNAME_MAX
-#elif defined(__hpux)
+#elif defined(__hpux) || defined(__MVS__)
 #define _PW_NAME_LEN	8
 #else
 #define _PW_NAME_LEN	MAXLOGNAME - 1
 #endif /* __linux__ || __CYGWIN__ || _AIX || __NetBSD__ || __sun || __midipix__ || __HAIKU__ || __QNXNTO__ */
 #endif /* !_PW_NAME_LEN */
 
+#ifndef LOCK_SH
+#define LOCK_SH	0x01
+#endif /* !LOCK_SH */
+
 #ifndef LOCK_EX
 #define LOCK_EX	0x02
 #endif /* !LOCK_EX */
 
+#ifndef LOCK_NB
+#define LOCK_NB	0x04
+#endif /* !LOCK_NB */
+
 #ifndef LOCK_UN
 #define LOCK_UN	0x08
 #endif /* !LOCK_UN */
+
+#ifndef HAVE_KILLPG
+#include <signal.h>	/* before the macro, so a system prototype is safe */
+#define killpg(pgrp, sig)	kill(-(pgrp), (sig))
+#endif /* !HAVE_KILLPG */
 
 #ifndef RLIMIT_RSS
 #define	RLIMIT_RSS	5		/* resident set size */
@@ -117,6 +138,12 @@
 #define WCOREDUMP(x) ((x) & WCOREFLAG)
 #undef BAD
 #endif /* _AIX */
+
+#ifdef __MVS__
+#ifndef WCOREDUMP
+#define WCOREDUMP(x) 0	/* z/OS does not report core dumps in status */
+#endif /* !WCOREDUMP */
+#endif /* __MVS__ */
 
 #ifdef __HAIKU__
 #define _PATH_DEFPATH ".:/boot/home/config/non-packaged/bin:/boot/home/config/bin:/boot/system/non-packaged/bin:/bin:/boot/system/apps:/boot/system/preferences"
@@ -218,6 +245,10 @@ int asprintf(char **str, const char *fmt, ...);
 size_t	confstr(int, char *, size_t);
 #endif /* !HAVE_CONFSTR */
 
+#ifndef HAVE_FLOCK
+int	flock(int, int);
+#endif /* !HAVE_FLOCK */
+
 #ifndef HAVE_REALLOCARRAY
 void	 *reallocarray(void *, size_t, size_t);
 #endif /* !HAVE_REALLOCARRAY */
@@ -225,6 +256,10 @@ void	 *reallocarray(void *, size_t, size_t);
 #ifndef HAVE_STRAVIS
 int	  stravis(char **, const char *, int);
 #endif /* !HAVE_STRAVIS */
+
+#ifndef HAVE_STRSIGNAL
+char	*strsignal(int);
+#endif /* !HAVE_STRSIGNAL */
 
 #ifndef HAVE_STRLCAT
 size_t	strlcat(char *, const char *, size_t);
@@ -250,10 +285,21 @@ int	oksh_issetugid(void);
  */
 
 #if !defined(HAVE_SIGLIST) || !defined(HAVE_SIGNAME)
+#ifdef __MVS__
+/*
+ * z/OS signal numbers run past 32 (SIGDANGER, SIGTRACE, SIGDUMP, ...).
+ * sigtraps[] is indexed by signal number and SIGERR_ is NSIG, so NSIG
+ * must stay above all of them; trap.c checks this at compile time.
+ */
+#ifndef NSIG
+#define NSIG 42
+#endif /* !NSIG */
+#else
 #ifdef NSIG
 #undef NSIG
 #endif /* NSIG */
 #define NSIG 33
+#endif /* __MVS__ */
 #ifndef HAVE_SIGLIST
 extern const char *const sys_siglist[NSIG];
 #endif /* !HAVE_SIGLIST */

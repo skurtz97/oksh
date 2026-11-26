@@ -4,6 +4,11 @@
  * Expanding strings
  */
 
+#ifndef OKSH_EXPAND_H
+#define OKSH_EXPAND_H
+
+#include "types.h"
+
 #define X_EXTRA		8	/* this many extra bytes in X string */
 
 #if 0				/* Usage */
@@ -23,14 +28,6 @@
  *     before calling Xcheck. (See yylex in lex.c)
  */
 #endif /* 0 */
-
-typedef struct XString {
-	char   *end, *beg;	/* end, begin of string */
-	size_t	len;		/* length */
-	Area	*areap;		/* area to allocate/free from */
-} XString;
-
-typedef char * XStringP;
 
 /* initialize expandable string */
 #define	Xinit(xs, xp, length, area) do { \
@@ -70,15 +67,6 @@ typedef char * XStringP;
 
 char *	Xcheck_grow_(XString *xsp, char *xp, size_t more);
 
-/*
- * expandable vector of generic pointers
- */
-
-typedef struct XPtrV {
-	void  **cur;		/* next avail pointer */
-	void  **beg, **end;	/* begin, end of vector */
-} XPtrV;
-
 #define	XPinit(x, n) do { \
 			void **vp__; \
 			vp__ = areallocarray(NULL, n, sizeof(void *), ATEMP); \
@@ -104,3 +92,5 @@ typedef struct XPtrV {
 					 sizeof(void *), ATEMP)
 
 #define	XPfree(x)	afree((x).beg, ATEMP)
+
+#endif /* !OKSH_EXPAND_H */

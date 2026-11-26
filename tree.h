@@ -9,6 +9,11 @@
 /*
  * Description of a command or an operation on commands.
  */
+#ifndef OKSH_TREE_H
+#define OKSH_TREE_H
+
+#include "types.h"
+
 struct op {
 	short	type;			/* operation type, see below */
 	union { /* WARNING: newtp(), tcopy() use evalflags = 0 to clear union */
@@ -143,3 +148,5 @@ char *	wdcopy(const char *, Area *);
 char *	wdscan(const char *, int);
 char *	wdstrip(const char *);
 void	tfree(struct op *, Area *);
+
+#endif /* !OKSH_TREE_H */

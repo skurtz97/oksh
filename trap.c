@@ -11,6 +11,39 @@
 
 #include "sh.h"
 
+#ifdef __MVS__
+/*
+ * sigtraps[] is indexed by signal number and SIGERR_ is NSIG: fail the
+ * build if any z/OS-specific signal would fall outside the table.
+ */
+#define OKSH_NSIG_COVERS(sig, tag) \
+	typedef char oksh_nsig_covers_##tag[((sig) < NSIG) ? 1 : -1]
+#ifdef SIGABND
+OKSH_NSIG_COVERS(SIGABND, abnd);
+#endif
+#ifdef SIGIOERR
+OKSH_NSIG_COVERS(SIGIOERR, ioerr);
+#endif
+#ifdef SIGDANGER
+OKSH_NSIG_COVERS(SIGDANGER, danger);
+#endif
+#ifdef SIGTHSTOP
+OKSH_NSIG_COVERS(SIGTHSTOP, thstop);
+#endif
+#ifdef SIGTHCONT
+OKSH_NSIG_COVERS(SIGTHCONT, thcont);
+#endif
+#ifdef SIGTRACE
+OKSH_NSIG_COVERS(SIGTRACE, trace);
+#endif
+#ifdef SIGDCE
+OKSH_NSIG_COVERS(SIGDCE, dce);
+#endif
+#ifdef SIGDUMP
+OKSH_NSIG_COVERS(SIGDUMP, dump);
+#endif
+#endif /* __MVS__ */
+
 Trap sigtraps[NSIG + 1];
 
 static struct sigaction Sigact_ign, Sigact_trap;

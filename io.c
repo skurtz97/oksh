@@ -298,6 +298,25 @@ restfd(int fd, int ofd)
 	}
 }
 
+#ifdef __MVS__
+/*
+ * Tag a new pipe as IBM-1047 text.  The shell converts untagged
+ * descriptors itself, but an ASCII child (a zopen tool) needs the tag
+ * and auto-conversion to see text where an EBCDIC child (any /bin
+ * tool) reads the bytes natively.
+ */
+static void
+zos_tag_pipe(int fd)
+{
+	struct file_tag tag;
+
+	memset(&tag, 0, sizeof(tag));
+	tag.ft_ccsid = 1047;
+	tag.ft_txtflag = 1;
+	(void)fcntl(fd, F_SETTAG, &tag);	/* best effort */
+}
+#endif /* __MVS__ */
+
 void
 openpipe(int *pv)
 {
@@ -305,6 +324,10 @@ openpipe(int *pv)
 
 	if (pipe(lpv) == -1)
 		errorf("can't create pipe - try again");
+#ifdef __MVS__
+	zos_tag_pipe(lpv[0]);
+	zos_tag_pipe(lpv[1]);
+#endif /* __MVS__ */
 	pv[0] = savefd(lpv[0]);
 	if (pv[0] != lpv[0])
 		close(lpv[0]);
